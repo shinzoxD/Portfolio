@@ -11,9 +11,22 @@ function getDatabaseUrl() {
 
 function isDatabaseSslEnabled() {
   const value = process.env.DATABASE_SSL;
-  if (typeof value !== "string") return false;
-  const clean = value.trim().toLowerCase();
-  return clean === "1" || clean === "true" || clean === "yes";
+  if (typeof value === "string" && value.trim().length > 0) {
+    const clean = value.trim().toLowerCase();
+    return clean === "1" || clean === "true" || clean === "yes";
+  }
+
+  const databaseUrl = getDatabaseUrl();
+  if (!databaseUrl) return false;
+
+  try {
+    const parsed = new URL(databaseUrl);
+    const sslMode = (parsed.searchParams.get("sslmode") || "").trim().toLowerCase();
+    if (!sslMode) return false;
+    return sslMode !== "disable" && sslMode !== "allow";
+  } catch (error) {
+    return false;
+  }
 }
 
 function getFirstPositionalArg() {

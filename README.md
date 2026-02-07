@@ -19,7 +19,7 @@ Set these values in `.env.local` and in your hosting provider secrets:
 - `ADMIN_PIN`: passcode used to unlock admin panel
 - `ADMIN_SESSION_SECRET`: long random value used to sign admin session cookie
 - `DATABASE_URL`: Postgres connection string
-- `DATABASE_SSL`: `true` when your Postgres requires SSL, otherwise `false`
+- `DATABASE_SSL`: `true` for Neon and most managed Postgres services
 
 The PIN is now validated on server-side routes (`/api/admin/*`), so it is not bundled in client JS.
 After you change `.env.local`, restart `npm run dev`.
@@ -86,54 +86,40 @@ npm run db:restore -- backups/content-backup-20260207-120000Z.json
 
 - Before every restore, a safety snapshot is auto-created at `backups/pre-restore-*.json`.
 
-## Northflank + Postgres deploy
+## Hugging Face Spaces + Neon deploy
 
-### 1. Create project (screen you shared)
+### 1. Create Neon database
 
-1. Open Northflank `Projects` and click `Create new`.
-2. Enter project name, keep `Northflank Cloud`, choose region, and create.
+1. In Neon, create a project and database.
+2. Copy the pooled connection string.
+3. Keep SSL mode enabled in the URL.
 
-### 2. Link Git provider
+### 2. Create Hugging Face Docker Space
 
-1. In your team/project, open `Integrations`.
-2. Connect GitHub and allow access to the repository that contains this app.
+1. In Hugging Face, click `New Space`.
+2. Select `Docker` SDK.
+3. Create the Space from your GitHub repo or upload this project files.
 
-### 3. Add Postgres
+### 3. Set Space secrets
 
-1. Inside project, click `Create new` -> `Addon`.
-2. Choose `PostgreSQL` and create it in the same project/region.
-3. Open the addon and copy its connection env var (`DATABASE_URL`).
+In Space settings -> `Variables and secrets`, add:
 
-### 4. Create web service
+ - `ADMIN_PIN`
+ - `ADMIN_SESSION_SECRET`
+ - `DATABASE_URL` (from Neon)
+ - `DATABASE_SSL=true`
 
-1. Click `Create new` -> `Service`.
-2. Select your GitHub repo and branch.
-3. Configure:
-   - Runtime: Node.js
-   - Build command: `npm ci && npm run build`
-   - Start command: `npm run start`
-   - Port: use default `PORT` from Northflank (already supported by `server.js`)
+### 4. Deploy and verify
 
-### 5. Set environment variables in service
-
-Add:
-
-- `ADMIN_PIN` = your admin passcode
-- `ADMIN_SESSION_SECRET` = long random secret (at least 32 chars)
-- `DATABASE_URL` = value from Postgres addon
-- `DATABASE_SSL` = `false` for internal Northflank network, `true` only if your DB endpoint requires TLS
-
-### 6. Deploy and verify
-
-1. Trigger deploy.
-2. Open your service domain.
-3. Visit `https://your-domain/#/admin`.
+1. Hugging Face will build using the included `Dockerfile`.
+2. Open your Space URL.
+3. Go to `https://<your-space-url>/#/admin`.
 4. Unlock with `ADMIN_PIN`.
-5. Edit a section, save, refresh page, confirm data persists.
+5. Save a change, refresh, and confirm it persists.
 
-### 7. Optional first backup after deploy
+### 5. Optional first backup after deploy
 
-Run in a local shell with the same production `DATABASE_URL`:
+Run locally with production Neon `DATABASE_URL`:
 
 ```bash
 npm run db:backup
