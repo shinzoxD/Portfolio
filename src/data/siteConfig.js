@@ -1,4 +1,5 @@
-import myOwnSchoolImageUrl from "../assets/my-own-school.jpg";
+const MY_OWN_SCHOOL_IMG_URL =
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Gyan_Bharati_School_building.jpg/1280px-Gyan_Bharati_School_building.jpg";
 
 export const PROFILE = {
   name: "Nishchaya Sharma",
@@ -178,7 +179,7 @@ export const EDUCATION = [
     details: "Strong foundation in Science and Mathematics.",
     typeLabel: "School",
     location: "Shyam Nagar, Jaipur",
-    imageUrl: myOwnSchoolImageUrl,
+    imageUrl: MY_OWN_SCHOOL_IMG_URL,
     imageAlt: "My Own School building",
   },
 ];
