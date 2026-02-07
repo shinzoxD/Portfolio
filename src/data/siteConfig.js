@@ -1,5 +1,6 @@
-const MY_OWN_SCHOOL_IMG_URL =
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Gyan_Bharati_School_building.jpg/1280px-Gyan_Bharati_School_building.jpg";
+import myOwnSchoolImage from "../assets/my-own-school.jpg";
+
+const MY_OWN_SCHOOL_IMG_URL = myOwnSchoolImage;
 
 export const PROFILE = {
   name: "Nishchaya Sharma",

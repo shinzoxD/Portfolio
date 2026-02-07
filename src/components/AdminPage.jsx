@@ -22,6 +22,8 @@ const SECTION_OPTIONS = [
   { key: "contact", label: "Contact" },
 ];
 
+const ADMIN_SESSION_STORAGE_KEY = "portfolio_admin_session";
+
 function parseCsv(text) {
   if (typeof text !== "string") return [];
   return text
@@ -165,6 +167,28 @@ export default function AdminPage({
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [adminToken, setAdminToken] = useState(() => {
+    try {
+      return globalThis.sessionStorage
+        ? globalThis.sessionStorage.getItem(ADMIN_SESSION_STORAGE_KEY) || ""
+        : "";
+    } catch (error) {
+      return "";
+    }
+  });
+
+  const persistAdminToken = useCallback((value) => {
+    try {
+      if (!globalThis.sessionStorage) return;
+      if (value) {
+        globalThis.sessionStorage.setItem(ADMIN_SESSION_STORAGE_KEY, value);
+        return;
+      }
+      globalThis.sessionStorage.removeItem(ADMIN_SESSION_STORAGE_KEY);
+    } catch (error) {
+      // Ignore storage errors and keep cookie-based auth path.
+    }
+  }, []);
 
   useEffect(() => {
     setProfileDraft(profile || defaults.profile);
@@ -234,13 +258,18 @@ export default function AdminPage({
   const checkSession = useCallback(async () => {
     setAuthChecking(true);
     try {
+      const headers = {};
+      if (adminToken) headers["X-Admin-Session"] = adminToken;
       const res = await fetch("/api/admin/session", {
         method: "GET",
         credentials: "include",
+        headers,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         onAdminChange(false);
+        setAdminToken("");
+        persistAdminToken("");
         setError(
           data && typeof data.message === "string" && data.message.trim()
             ? data.message
@@ -249,13 +278,17 @@ export default function AdminPage({
         return;
       }
       onAdminChange(Boolean(data.authenticated));
+      if (!data.authenticated) {
+        setAdminToken("");
+        persistAdminToken("");
+      }
     } catch (networkError) {
       onAdminChange(false);
       setError("Admin API is not reachable.");
     } finally {
       setAuthChecking(false);
     }
-  }, [onAdminChange]);
+  }, [adminToken, onAdminChange, persistAdminToken]);
 
   useEffect(() => {
     checkSession();
@@ -284,13 +317,21 @@ export default function AdminPage({
             : "Invalid passcode.",
         );
         onAdminChange(false);
+        setAdminToken("");
+        persistAdminToken("");
         return;
       }
+      const token =
+        data && typeof data.sessionToken === "string" ? data.sessionToken.trim() : "";
+      setAdminToken(token);
+      persistAdminToken(token);
       onAdminChange(true);
       setPasscode("");
       setFeedback("Admin unlocked.");
     } catch (networkError) {
       onAdminChange(false);
+      setAdminToken("");
+      persistAdminToken("");
       setError("Could not reach admin login API.");
     } finally {
       setAuthBusy(false);
@@ -300,14 +341,19 @@ export default function AdminPage({
   const lock = async () => {
     setAuthBusy(true);
     try {
+      const headers = {};
+      if (adminToken) headers["X-Admin-Session"] = adminToken;
       await fetch("/api/admin/logout", {
         method: "POST",
         credentials: "include",
+        headers,
       });
     } catch (networkError) {
       // Best effort.
     } finally {
       onAdminChange(false);
+      setAdminToken("");
+      persistAdminToken("");
       setAuthBusy(false);
     }
   };
@@ -350,10 +396,19 @@ export default function AdminPage({
       await onSaveAllContent(payload);
       setFeedback("All sections saved.");
     } catch (saveError) {
-      setError(
+      const message =
         saveError instanceof Error && saveError.message
           ? saveError.message
-          : "Could not save content.",
+          : "Could not save content.";
+      if (message.toLowerCase().includes("unauthorized admin session")) {
+        onAdminChange(false);
+        setAdminToken("");
+        persistAdminToken("");
+        setError("Admin session expired. Unlock admin again.");
+        return;
+      }
+      setError(
+        message,
       );
     } finally {
       setSaveBusy(false);
@@ -370,10 +425,19 @@ export default function AdminPage({
       await onSaveResumeFile(file);
       setFeedback("Resume uploaded.");
     } catch (uploadError) {
-      setError(
+      const message =
         uploadError instanceof Error && uploadError.message
           ? uploadError.message
-          : "Could not upload resume.",
+          : "Could not upload resume.";
+      if (message.toLowerCase().includes("unauthorized admin session")) {
+        onAdminChange(false);
+        setAdminToken("");
+        persistAdminToken("");
+        setError("Admin session expired. Unlock admin again.");
+        return;
+      }
+      setError(
+        message,
       );
     } finally {
       setResumeBusy(false);

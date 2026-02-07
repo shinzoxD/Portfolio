@@ -132,10 +132,22 @@ export default function App() {
 
   const saveContentPatch = useCallback(
     async (patch) => {
+      const headers = { "Content-Type": "application/json" };
+      try {
+        const sessionToken = globalThis.sessionStorage
+          ? globalThis.sessionStorage.getItem("portfolio_admin_session") || ""
+          : "";
+        if (sessionToken) {
+          headers["X-Admin-Session"] = sessionToken;
+        }
+      } catch (error) {
+        // Ignore storage access errors and keep cookie-based auth path.
+      }
+
       const res = await fetch("/api/content", {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(patch),
       });
 

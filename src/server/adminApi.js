@@ -59,6 +59,17 @@ async function readBodyAsJson(req) {
 }
 
 function getSessionFromReq(req) {
+  const headerToken = req && req.headers ? req.headers["x-admin-session"] : "";
+  if (typeof headerToken === "string" && headerToken.trim().length > 0) {
+    return headerToken.trim();
+  }
+  if (Array.isArray(headerToken) && headerToken.length > 0) {
+    const first = headerToken[0];
+    if (typeof first === "string" && first.trim().length > 0) {
+      return first.trim();
+    }
+  }
+
   const cookieHeader = req && req.headers ? req.headers.cookie : "";
   const cookies = parseCookieHeader(cookieHeader);
   return typeof cookies[ADMIN_COOKIE_NAME] === "string" ? cookies[ADMIN_COOKIE_NAME] : "";
@@ -114,7 +125,7 @@ export async function handleAdminLogin(req, res) {
   }
 
   res.setHeader("Set-Cookie", makeSessionCookie(token, req));
-  sendJson(res, 200, { ok: true, authenticated: true });
+  sendJson(res, 200, { ok: true, authenticated: true, sessionToken: token });
 }
 
 export function handleAdminLogout(req, res) {
