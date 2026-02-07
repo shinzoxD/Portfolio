@@ -1,3 +1,13 @@
+---
+title: Nishchaya Sharma Portfolio
+emoji: "📊"
+colorFrom: blue
+colorTo: gray
+sdk: docker
+app_port: 7860
+license: mit
+---
+
 # Nishchaya Sharma - Portfolio
 
 Single-page React app built with Vite and Tailwind CSS.
