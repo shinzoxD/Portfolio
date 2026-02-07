@@ -1,0 +1,45 @@
+module.exports = {
+  darkMode: ["class"],
+  content: ["./index.html", "./public/index.html", "./src/**/*.{js,jsx}"],
+  safelist: [
+    "bg-gradient-to-r",
+    "bg-gradient-to-br",
+    "from-zinc-900",
+    "to-black",
+    "from-slate-200",
+    "via-zinc-200",
+    "to-gray-400",
+    "from-slate-300",
+    "via-slate-200",
+    "to-zinc-300",
+    "from-zinc-300",
+    "via-gray-300",
+    "to-slate-400",
+    "from-neutral-300",
+    "via-stone-200",
+    "to-zinc-400",
+    "bg-emerald-400",
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: [
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica",
+          "Arial",
+          "Noto Sans",
+          "Apple Color Emoji",
+          "Segoe UI Emoji",
+        ],
+      },
+      boxShadow: {
+        neon: "0 0 0 1px rgba(255,255,255,0.08), 0 0 26px rgba(148,163,184,0.18)",
+      },
+    },
+  },
+  plugins: [],
+};

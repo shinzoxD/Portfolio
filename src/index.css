@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(226, 232, 240, 0.9);
+  outline-offset: 2px;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 700ms ease, transform 700ms ease;
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.role-swap {
+  display: inline-block;
+  transition: opacity 400ms ease, transform 400ms ease;
+}
+
+.role-swap.is-changing {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.55rem;
+  height: 2px;
+  background: linear-gradient(90deg, #e2e8f0, #a1a1aa, #6b7280);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 250ms ease;
+}
+
+.nav-link.is-active::after {
+  transform: scaleX(1);
+}
+
+.mobile-nav-link {
+  position: relative;
+}
+
+.mobile-nav-link::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 3px;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #e2e8f0, #a1a1aa, #6b7280);
+  opacity: 0;
+  transform: scaleY(0.6);
+  transform-origin: top;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.mobile-nav-link.is-active::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
