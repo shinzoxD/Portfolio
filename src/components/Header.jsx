@@ -114,10 +114,15 @@ export default function Header({
         className={[
           "md:hidden overflow-hidden border-b border-white/10 bg-black/80 backdrop-blur",
           "transition-[max-height,opacity] duration-300",
-          open ? "max-h-96 opacity-100" : "max-h-0 opacity-0 pointer-events-none",
+          open
+            ? "max-h-[calc(100dvh-4.25rem)] opacity-100"
+            : "max-h-0 opacity-0 pointer-events-none",
         ].join(" ")}
       >
-        <nav className="mx-auto max-w-screen-2xl px-4 py-3 sm:px-6" aria-label="Mobile">
+        <nav
+          className="mx-auto max-h-[calc(100dvh-4.25rem)] max-w-screen-2xl overflow-y-auto overscroll-contain px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 sm:px-6"
+          aria-label="Mobile"
+        >
           <div className="flex flex-col">
             {items.map((item) => (
               <button
