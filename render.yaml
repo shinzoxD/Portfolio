@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: nishchaya-portfolio
+    env: node
+    region: oregon
+    plan: starter
+    branch: main
+    autoDeploy: true
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: "true"
+      - key: ADMIN_PIN
+        sync: false
+      - key: ADMIN_SESSION_SECRET
+        sync: false

@@ -134,3 +134,29 @@ Run locally with production Neon `DATABASE_URL`:
 ```bash
 npm run db:backup
 ```
+
+## Render + Neon deploy
+
+### 1. Create Neon database
+
+1. In Neon, create a project and copy the connection string.
+2. Use SSL mode in the URL.
+
+### 2. Deploy on Render
+
+1. Push this repo to GitHub.
+2. In Render, click `New` -> `Blueprint`.
+3. Select this repo and deploy with the included `render.yaml`.
+4. In Render service env vars, set:
+   - `ADMIN_PIN`
+   - `ADMIN_SESSION_SECRET`
+   - `DATABASE_URL`
+   - `DATABASE_SSL=true`
+5. Use `Starter` plan if you want no sleep behavior.
+
+### 3. Connect custom domain
+
+1. Open the Render service -> `Settings` -> `Custom Domains`.
+2. Add `www.nishchaya.app`.
+3. Add the DNS records shown by Render inside Name.com.
+4. For apex `nishchaya.app`, either add ALIAS/ANAME to Render target if supported or redirect apex to `www`.
