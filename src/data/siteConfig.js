@@ -159,7 +159,7 @@ export const SKILL_GROUPS = [
 ];
 
 export const JKLU_IMG_URL =
-  "https://upload.wikimedia.org/wikipedia/commons/e/ef/JK_Lakshmipat_University.jpg";
+  "https://assets.kollegeapply.com/images/1751565622989-1737521636phpMEVziF.jpeg";
 
 export const EDUCATION = [
   {

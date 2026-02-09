@@ -2,6 +2,17 @@ import React, { useEffect, useState } from "react";
 import Card from "./Card.jsx";
 import { EDUCATION } from "../data/siteConfig.js";
 
+const JKLU_FALLBACK_IMAGE_URL =
+  "https://assets.kollegeapply.com/images/1751565622989-1737521636phpMEVziF.jpeg";
+
+function getFallbackImageUrl(item) {
+  const school = item && typeof item.school === "string" ? item.school : "";
+  if (school.toLowerCase().includes("jk lakshmipat university")) {
+    return JKLU_FALLBACK_IMAGE_URL;
+  }
+  return "";
+}
+
 function IconCalendar(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
@@ -33,28 +44,37 @@ function IconPin(props) {
 }
 
 function EducationCard({ item }) {
-  const [imageFailed, setImageFailed] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState(item.imageUrl || "");
 
   useEffect(() => {
-    setImageFailed(false);
+    setCurrentImageUrl(item.imageUrl || "");
   }, [item.imageUrl]);
 
   const badge = item.typeLabel || "Education";
   const details =
     item.details && item.details.trim().length > 0 ? item.details : " ";
   const altText = item.imageAlt || "Education image";
+  const fallbackImageUrl = getFallbackImageUrl(item);
+
+  const onImageError = () => {
+    if (fallbackImageUrl && currentImageUrl !== fallbackImageUrl) {
+      setCurrentImageUrl(fallbackImageUrl);
+      return;
+    }
+    setCurrentImageUrl("");
+  };
 
   return (
     <Card className="h-full">
       <div className="flex h-full flex-col overflow-hidden rounded-2xl">
         <div className="relative h-52 w-full sm:h-60">
-          {item.imageUrl && !imageFailed ? (
+          {currentImageUrl ? (
             <img
-              src={item.imageUrl}
+              src={currentImageUrl}
               alt={altText}
               className="h-full w-full object-cover"
               loading="lazy"
-              onError={() => setImageFailed(true)}
+              onError={onImageError}
             />
           ) : (
             <div
