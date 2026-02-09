@@ -16,6 +16,26 @@ function cleanList(input) {
   return [];
 }
 
+const JKLU_CANONICAL_IMAGE_URL =
+  "https://assets.kollegeapply.com/images/1751565627972-1604396742phpXud8FD.jpeg";
+
+const JKLU_LEGACY_IMAGE_URLS = new Set([
+  "https://assets.kollegeapply.com/images/1751565622989-1737521636phpMEVziF.jpeg",
+  "https://upload.wikimedia.org/wikipedia/commons/e/ef/JK_Lakshmipat_University.jpg",
+]);
+
+function normalizeEducationImageUrl(school, imageUrl) {
+  const schoolName = cleanText(school).toLowerCase();
+  const current = cleanText(imageUrl);
+  if (!schoolName.includes("jk lakshmipat university")) {
+    return current;
+  }
+  if (!current || JKLU_LEGACY_IMAGE_URLS.has(current)) {
+    return JKLU_CANONICAL_IMAGE_URL;
+  }
+  return current;
+}
+
 export function normalizeProfile(raw) {
   const source = raw && typeof raw === "object" ? raw : {};
   return {
@@ -87,14 +107,15 @@ export function normalizeEducation(raw) {
   return raw
     .map((entry) => {
       const item = entry && typeof entry === "object" ? entry : {};
+      const school = cleanText(item.school);
       return {
-        school: cleanText(item.school),
+        school,
         degree: cleanText(item.degree),
         period: cleanText(item.period),
         details: cleanText(item.details),
         typeLabel: cleanText(item.typeLabel),
         location: cleanText(item.location),
-        imageUrl: cleanText(item.imageUrl),
+        imageUrl: normalizeEducationImageUrl(school, item.imageUrl),
         imageAlt: cleanText(item.imageAlt),
       };
     })

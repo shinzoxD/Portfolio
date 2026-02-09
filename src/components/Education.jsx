@@ -3,7 +3,12 @@ import Card from "./Card.jsx";
 import { EDUCATION } from "../data/siteConfig.js";
 
 const JKLU_FALLBACK_IMAGE_URL =
-  "https://assets.kollegeapply.com/images/1751565622989-1737521636phpMEVziF.jpeg";
+  "https://assets.kollegeapply.com/images/1751565627972-1604396742phpXud8FD.jpeg";
+
+const JKLU_LEGACY_IMAGE_URLS = new Set([
+  "https://assets.kollegeapply.com/images/1751565622989-1737521636phpMEVziF.jpeg",
+  "https://upload.wikimedia.org/wikipedia/commons/e/ef/JK_Lakshmipat_University.jpg",
+]);
 
 function getFallbackImageUrl(item) {
   const school = item && typeof item.school === "string" ? item.school : "";
@@ -11,6 +16,14 @@ function getFallbackImageUrl(item) {
     return JKLU_FALLBACK_IMAGE_URL;
   }
   return "";
+}
+
+function getInitialImageUrl(item) {
+  const imageUrl = item && typeof item.imageUrl === "string" ? item.imageUrl.trim() : "";
+  const fallbackImageUrl = getFallbackImageUrl(item);
+  if (!fallbackImageUrl) return imageUrl;
+  if (!imageUrl || JKLU_LEGACY_IMAGE_URLS.has(imageUrl)) return fallbackImageUrl;
+  return imageUrl;
 }
 
 function IconCalendar(props) {
@@ -44,10 +57,10 @@ function IconPin(props) {
 }
 
 function EducationCard({ item }) {
-  const [currentImageUrl, setCurrentImageUrl] = useState(item.imageUrl || "");
+  const [currentImageUrl, setCurrentImageUrl] = useState(getInitialImageUrl(item));
 
   useEffect(() => {
-    setCurrentImageUrl(item.imageUrl || "");
+    setCurrentImageUrl(getInitialImageUrl(item));
   }, [item.imageUrl]);
 
   const badge = item.typeLabel || "Education";

@@ -159,7 +159,7 @@ export const SKILL_GROUPS = [
 ];
 
 export const JKLU_IMG_URL =
-  "https://assets.kollegeapply.com/images/1751565622989-1737521636phpMEVziF.jpeg";
+  "https://assets.kollegeapply.com/images/1751565627972-1604396742phpXud8FD.jpeg";
 
 export const EDUCATION = [
   {
