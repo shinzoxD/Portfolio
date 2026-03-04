@@ -183,7 +183,7 @@ function normalizeStoredContent(raw) {
   if (value.heroRoles) out.heroRoles = normalizeHeroRoles(value.heroRoles);
   if (value.about && typeof value.about === "object") out.about = normalizeAboutContent(value.about);
   if (Array.isArray(value.skillGroups)) out.skillGroups = normalizeSkillGroups(value.skillGroups);
-  if (Array.isArray(value.experience)) out.experience = normalizeExperience(value.experience);
+  if (Object.prototype.hasOwnProperty.call(value, "experience")) out.experience = normalizeExperience(value.experience);
   if (Array.isArray(value.education)) out.education = normalizeEducation(value.education);
   if (Array.isArray(value.projects)) out.projects = normalizeProjects(value.projects);
   if (Array.isArray(value.certifications)) out.certifications = normalizeCertifications(value.certifications);

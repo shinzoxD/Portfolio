@@ -63,7 +63,7 @@ export function normalizeStoredContent(raw) {
     skillGroups: source.skillGroups
       ? normalizeSkillGroups(source.skillGroups)
       : defaults.skillGroups,
-    experience: source.experience
+    experience: Object.prototype.hasOwnProperty.call(source, "experience")
       ? normalizeExperience(source.experience)
       : defaults.experience,
     education: source.education ? normalizeEducation(source.education) : defaults.education,
@@ -79,3 +79,4 @@ export function normalizeStoredContent(raw) {
       : defaults.sectionSubtitles,
   };
 }
+

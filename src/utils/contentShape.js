@@ -87,19 +87,55 @@ export function normalizeSkillGroups(raw) {
 }
 
 export function normalizeExperience(raw) {
-  if (!Array.isArray(raw)) return [];
-  return raw
+  let source = [];
+
+  if (Array.isArray(raw)) {
+    source = raw;
+  } else if (raw && typeof raw === "object") {
+    source = Object.values(raw);
+  } else if (typeof raw === "string") {
+    const text = raw.trim();
+    if (text) {
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          source = parsed;
+        } else if (parsed && typeof parsed === "object") {
+          source = Object.values(parsed);
+        }
+      } catch (error) {
+        source = [];
+      }
+    }
+  }
+
+  return source
     .map((entry) => {
       const item = entry && typeof entry === "object" ? entry : {};
+      const company = cleanText(item.company || item.organization || item.employer);
+      const role = cleanText(item.role || item.title || item.position);
+      const period = cleanText(item.period || item.duration || item.tenure);
+      const location = cleanText(item.location || item.place);
+      const bullets = cleanList(
+        item.bullets || item.points || item.highlights || item.responsibilities || item.details,
+      );
+
       return {
-        company: cleanText(item.company),
-        role: cleanText(item.role),
-        period: cleanText(item.period),
-        location: cleanText(item.location),
-        bullets: cleanList(item.bullets),
+        company,
+        role,
+        period,
+        location,
+        bullets,
       };
     })
-    .filter((entry) => entry.company.length > 0 || entry.role.length > 0);
+    .filter(
+      (entry) =>
+        entry.company.length > 0 ||
+        entry.role.length > 0 ||
+        entry.period.length > 0 ||
+        entry.location.length > 0 ||
+        entry.bullets.length > 0,
+    );
 }
 
 export function normalizeEducation(raw) {
