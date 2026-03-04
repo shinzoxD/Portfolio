@@ -320,7 +320,19 @@ export default function App() {
 
     for (const el of elements) observer.observe(el);
     return () => observer.disconnect();
-  }, [mounts, view]);
+  }, [
+    mounts,
+    view,
+    profile,
+    heroRoles,
+    aboutContent,
+    skillGroups,
+    experience,
+    education,
+    projects,
+    certifications,
+    sectionVisibility,
+  ]);
 
   if (!mounts || !mounts.headerEl) return null;
 
@@ -437,3 +449,4 @@ export default function App() {
     </>
   );
 }
+
