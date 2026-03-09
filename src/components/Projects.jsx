@@ -2,6 +2,8 @@ import React from "react";
 import Card from "./Card.jsx";
 import { PROJECTS } from "../data/siteConfig.js";
 
+const HOME_PROJECT_LIMIT = 3;
+
 function LinkOrPlaceholder({ href, children, ariaLabel }) {
   const classes =
     "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-white/15 bg-white/5 hover:bg-white/10";
@@ -44,7 +46,11 @@ export default function Projects({
   subtitle = "A mix of analytics work and developer builds with clean UI and measurable outcomes.",
 }) {
   const list = Array.isArray(projects) ? projects : PROJECTS;
-  const hasActions = showViewAll || showBack;
+  const isHomePreview = showViewAll && !showBack;
+  const visibleProjects = isHomePreview ? list.slice(0, HOME_PROJECT_LIMIT) : list;
+  const hasMoreProjects = list.length > visibleProjects.length;
+  const hasActions = showBack || (showViewAll && hasMoreProjects);
+
   return (
     <div className="mx-auto max-w-screen-2xl px-4 py-16 sm:px-6 sm:py-20">
       <div className="reveal flex items-end justify-between gap-6">
@@ -79,7 +85,7 @@ export default function Projects({
       </div>
 
       <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {list.map((project, index) => (
+        {visibleProjects.map((project, index) => (
           <Card key={`${project.title}-${index}`} className="h-full">
             <div className="flex h-full flex-col p-5">
               <div className="relative h-32 overflow-hidden rounded-xl bg-gradient-to-br from-zinc-900 to-black ring-1 ring-white/10">
