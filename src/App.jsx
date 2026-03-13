@@ -12,6 +12,8 @@ import ContactForm from "./components/ContactForm.jsx";
 import AdminPage from "./components/AdminPage.jsx";
 import { getDefaultContent, normalizeStoredContent } from "./utils/content.js";
 
+const PDF_DATA_URL_PREFIX = "data:application/pdf;base64,";
+
 const ALL_SECTION_IDS = [
   "home",
   "projects",
@@ -36,6 +38,29 @@ function smoothScrollToId(id) {
   window.scrollTo({ top: y, behavior: "smooth" });
 }
 
+function normalizeHref(value) {
+  if (typeof value !== "string") return "#";
+  const text = value.trim();
+  return text || "#";
+}
+
+function isPdfDataUrl(value) {
+  return value.startsWith(PDF_DATA_URL_PREFIX);
+}
+
+function createPdfBlobUrl(dataUrl) {
+  const base64 = dataUrl.slice(PDF_DATA_URL_PREFIX.length).replace(/\s/g, "");
+  const binary = globalThis.atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  return URL.createObjectURL(blob);
+}
+
 export default function App() {
   const defaults = useMemo(() => getDefaultContent(), []);
 
@@ -56,6 +81,9 @@ export default function App() {
   const [sectionVisibility, setSectionVisibility] = useState(defaults.sectionVisibility);
   const [sectionSubtitles, setSectionSubtitles] = useState(defaults.sectionSubtitles);
   const [resumeHref, setResumeHref] = useState(defaults.profile.resumeUrl);
+  const [publicResumeHref, setPublicResumeHref] = useState(() =>
+    normalizeHref(defaults.profile.resumeUrl),
+  );
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [mounts, setMounts] = useState(null);
@@ -111,6 +139,27 @@ export default function App() {
 
     loadContent();
   }, []);
+
+  useEffect(() => {
+    const nextHref = normalizeHref(resumeHref);
+    if (!isPdfDataUrl(nextHref)) {
+      setPublicResumeHref(nextHref);
+      return;
+    }
+
+    let objectUrl = "";
+
+    try {
+      objectUrl = createPdfBlobUrl(nextHref);
+      setPublicResumeHref(objectUrl);
+    } catch (error) {
+      setPublicResumeHref("#");
+    }
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [resumeHref]);
 
   const applyNormalizedContent = useCallback((normalized, resumeDataUrl) => {
     setProfile(normalized.profile);
@@ -352,7 +401,7 @@ export default function App() {
       {view === "home"
         ? createPortal(
             <Hero
-              resumeHref={resumeHref}
+              resumeHref={publicResumeHref}
               onNavigate={onNavigate}
               profile={profile}
               roles={heroRoles}
@@ -414,7 +463,7 @@ export default function App() {
       {view === "home" && sectionVisibility.about
         ? createPortal(
             <About
-              resumeHref={resumeHref}
+              resumeHref={publicResumeHref}
               profile={profile}
               aboutContent={aboutContent}
               subtitle={sectionSubtitles.about}
