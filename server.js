@@ -9,12 +9,14 @@ import {
   handleContentGet,
   handleContentSave,
 } from "./src/server/adminApi.js";
+import { readContentStore } from "./src/server/contentStore.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DIST_DIR = path.join(__dirname, "dist");
 const INDEX_FILE = path.join(DIST_DIR, "index.html");
 const PORT = Number(process.env.PORT || 5173);
+const BOOTSTRAP_TOKEN = "__PORTFOLIO_BOOTSTRAP__";
 
 const CONTENT_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -45,6 +47,15 @@ function sendText(res, status, text) {
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   setNoStore(res);
   res.end(text);
+}
+
+function serializeForHtml(value) {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }
 
 async function routeApi(req, res, pathname) {
@@ -116,6 +127,33 @@ async function sendFile(res, filePath, method) {
   }
 }
 
+async function sendIndexHtml(res, method) {
+  try {
+    const html = fs.readFileSync(INDEX_FILE, "utf8");
+    let content = null;
+
+    try {
+      content = await readContentStore();
+    } catch (error) {
+      content = null;
+    }
+
+    const body = html.replace(BOOTSTRAP_TOKEN, serializeForHtml(content));
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    setNoStore(res);
+
+    if (method === "HEAD") {
+      res.end();
+      return;
+    }
+
+    res.end(body);
+  } catch (error) {
+    sendText(res, 500, "Could not render app shell");
+  }
+}
+
 async function serveStatic(req, res, pathname) {
   if (req.method !== "GET" && req.method !== "HEAD") {
     sendText(res, 405, "Method not allowed");
@@ -126,11 +164,15 @@ async function serveStatic(req, res, pathname) {
   const staticFile = path.join(DIST_DIR, cleaned.replace(/^\/+/, ""));
   const staticExists = fs.existsSync(staticFile) && fs.statSync(staticFile).isFile();
   if (staticExists) {
+    if (path.resolve(staticFile) === path.resolve(INDEX_FILE)) {
+      await sendIndexHtml(res, req.method);
+      return;
+    }
     await sendFile(res, staticFile, req.method);
     return;
   }
 
-  await sendFile(res, INDEX_FILE, req.method);
+  await sendIndexHtml(res, req.method);
 }
 
 const server = http.createServer(async (req, res) => {

@@ -25,6 +25,8 @@ const ALL_SECTION_IDS = [
   "contact",
 ];
 
+const BOOTSTRAP_PLACEHOLDER = "__PORTFOLIO_BOOTSTRAP__";
+
 function getHeaderOffset() {
   const headerBar = document.getElementById("header-bar");
   if (!headerBar) return 0;
@@ -61,8 +63,44 @@ function createPdfBlobUrl(dataUrl) {
   return URL.createObjectURL(blob);
 }
 
+function readBootstrappedContent() {
+  if (typeof document !== "object") return null;
+  const node = document.getElementById("portfolio-bootstrap");
+  if (!node) return null;
+
+  const text = typeof node.textContent === "string" ? node.textContent.trim() : "";
+  if (!text || text === BOOTSTRAP_PLACEHOLDER) return null;
+
+  try {
+    const parsed = JSON.parse(text);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (error) {
+    return null;
+  }
+}
+
 export default function App() {
   const defaults = useMemo(() => getDefaultContent(), []);
+  const initialState = useMemo(() => {
+    const raw = readBootstrappedContent();
+    if (!raw) {
+      return {
+        content: defaults,
+        resumeHref: defaults.profile.resumeUrl,
+        ready: false,
+      };
+    }
+
+    const normalized = normalizeStoredContent(raw);
+    return {
+      content: normalized,
+      resumeHref:
+        typeof raw.resumeDataUrl === "string" && raw.resumeDataUrl.trim()
+          ? raw.resumeDataUrl.trim()
+          : normalized.profile.resumeUrl || "#",
+      ready: true,
+    };
+  }, [defaults]);
 
   const [activeSection, setActiveSection] = useState("home");
   const [hasShadow, setHasShadow] = useState(false);
@@ -70,21 +108,22 @@ export default function App() {
   const [pendingScroll, setPendingScroll] = useState("");
   const previousViewRef = useRef("home");
 
-  const [profile, setProfile] = useState(defaults.profile);
-  const [heroRoles, setHeroRoles] = useState(defaults.heroRoles);
-  const [aboutContent, setAboutContent] = useState(defaults.about);
-  const [skillGroups, setSkillGroups] = useState(defaults.skillGroups);
-  const [experience, setExperience] = useState(defaults.experience);
-  const [education, setEducation] = useState(defaults.education);
-  const [projects, setProjects] = useState(defaults.projects);
-  const [certifications, setCertifications] = useState(defaults.certifications);
-  const [sectionVisibility, setSectionVisibility] = useState(defaults.sectionVisibility);
-  const [sectionSubtitles, setSectionSubtitles] = useState(defaults.sectionSubtitles);
-  const [resumeHref, setResumeHref] = useState(defaults.profile.resumeUrl);
+  const [profile, setProfile] = useState(initialState.content.profile);
+  const [heroRoles, setHeroRoles] = useState(initialState.content.heroRoles);
+  const [aboutContent, setAboutContent] = useState(initialState.content.about);
+  const [skillGroups, setSkillGroups] = useState(initialState.content.skillGroups);
+  const [experience, setExperience] = useState(initialState.content.experience);
+  const [education, setEducation] = useState(initialState.content.education);
+  const [projects, setProjects] = useState(initialState.content.projects);
+  const [certifications, setCertifications] = useState(initialState.content.certifications);
+  const [sectionVisibility, setSectionVisibility] = useState(initialState.content.sectionVisibility);
+  const [sectionSubtitles, setSectionSubtitles] = useState(initialState.content.sectionSubtitles);
+  const [resumeHref, setResumeHref] = useState(initialState.resumeHref);
   const [publicResumeHref, setPublicResumeHref] = useState(() =>
-    normalizeHref(defaults.profile.resumeUrl),
+    normalizeHref(initialState.resumeHref),
   );
   const [isAdmin, setIsAdmin] = useState(false);
+  const [contentReady, setContentReady] = useState(initialState.ready);
 
   const [mounts, setMounts] = useState(null);
 
@@ -105,11 +144,16 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 5000);
+
     const loadContent = async () => {
       try {
         const res = await fetch("/api/content", {
           method: "GET",
           credentials: "include",
+          signal: controller.signal,
         });
         if (!res.ok) return;
         const data = await res.json();
@@ -117,6 +161,7 @@ export default function App() {
         if (!raw || typeof raw !== "object") return;
         const normalized = normalizeStoredContent(raw);
 
+        if (!active) return;
         setProfile(normalized.profile);
         setHeroRoles(normalized.heroRoles);
         setAboutContent(normalized.about);
@@ -134,10 +179,18 @@ export default function App() {
         }
       } catch (error) {
         // Keep defaults when API is unavailable.
+      } finally {
+        window.clearTimeout(timeoutId);
+        if (active) setContentReady(true);
       }
     };
 
     loadContent();
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -383,7 +436,7 @@ export default function App() {
     sectionVisibility,
   ]);
 
-  if (!mounts || !mounts.headerEl) return null;
+  if (!mounts || !mounts.headerEl || !contentReady) return null;
 
   return (
     <>
