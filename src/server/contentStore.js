@@ -18,12 +18,30 @@ const STORE_DIR = path.join(process.cwd(), "server-data");
 const STORE_FILE = path.join(STORE_DIR, "content.json");
 const MAX_RESUME_DATA_URL_LEN = 8_000_000;
 const CONTENT_ROW_ID = 1;
+const CONTENT_CACHE_TTL_MS = 60_000;
 
 let poolRef = null;
 let schemaPromise = null;
+let cachedRawContent = null;
+let cachedRawContentAt = 0;
 
 function ensureStoreDir() {
   if (!fs.existsSync(STORE_DIR)) fs.mkdirSync(STORE_DIR, { recursive: true });
+}
+
+function getCachedRawContent() {
+  if (!cachedRawContent) return null;
+  if (Date.now() - cachedRawContentAt > CONTENT_CACHE_TTL_MS) {
+    cachedRawContent = null;
+    cachedRawContentAt = 0;
+    return null;
+  }
+  return cachedRawContent;
+}
+
+function setCachedRawContent(value) {
+  cachedRawContent = value && typeof value === "object" ? value : {};
+  cachedRawContentAt = Date.now();
 }
 
 function readStoreRawFromFile() {
@@ -199,6 +217,15 @@ function normalizeStoredContent(raw) {
   return out;
 }
 
+function toPublicContent(raw) {
+  const normalized = normalizeStoredContent(raw);
+  const { resumeDataUrl, ...publicContent } = normalized;
+  return {
+    ...publicContent,
+    hasResume: Boolean(typeof resumeDataUrl === "string" && resumeDataUrl.trim()),
+  };
+}
+
 async function readStoreRawFromDatabase() {
   await ensureDatabaseSchema();
   const pool = getPool();
@@ -222,13 +249,24 @@ async function readStoreRawFromDatabase() {
 }
 
 async function readStoreRaw() {
-  if (hasDatabase()) return readStoreRawFromDatabase();
-  return readStoreRawFromFile();
+  const cached = getCachedRawContent();
+  if (cached) return cached;
+
+  const fresh = hasDatabase() ? await readStoreRawFromDatabase() : readStoreRawFromFile();
+  setCachedRawContent(fresh);
+  return fresh;
 }
 
-export async function readContentStore() {
+export async function readContentStore(options = {}) {
+  const includeResumeDataUrl =
+    options && typeof options === "object" && options.includeResumeDataUrl === true;
   const raw = await readStoreRaw();
-  return normalizeStoredContent(raw);
+  return includeResumeDataUrl ? normalizeStoredContent(raw) : toPublicContent(raw);
+}
+
+export async function readResumeDataUrl() {
+  const raw = await readStoreRaw();
+  return typeof raw.resumeDataUrl === "string" ? raw.resumeDataUrl.trim() : "";
 }
 
 async function writeContentToDatabase(patch) {
@@ -268,6 +306,7 @@ export async function writeContentStore(inputPatch) {
   const patch = sanitizePatch(inputPatch);
   if (hasDatabase()) {
     const next = await writeContentToDatabase(patch);
+    setCachedRawContent(next);
     return normalizeStoredContent(next);
   }
 
@@ -276,5 +315,6 @@ export async function writeContentStore(inputPatch) {
 
   ensureStoreDir();
   fs.writeFileSync(STORE_FILE, JSON.stringify(next, null, 2), "utf8");
+  setCachedRawContent(next);
   return normalizeStoredContent(next);
 }

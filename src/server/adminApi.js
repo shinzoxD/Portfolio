@@ -9,7 +9,7 @@ import {
   parseCookieHeader,
   verifySessionToken,
 } from "./adminAuth.js";
-import { readContentStore, writeContentStore } from "./contentStore.js";
+import { readContentStore, readResumeDataUrl, writeContentStore } from "./contentStore.js";
 
 function setNoStore(res) {
   res.setHeader("Cache-Control", "no-store");
@@ -20,6 +20,18 @@ function sendJson(res, status, payload) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   setNoStore(res);
   res.end(JSON.stringify(payload));
+}
+
+function sendPdf(res, status, buffer, method) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", 'inline; filename="resume.pdf"');
+  setNoStore(res);
+  if (method === "HEAD") {
+    res.end();
+    return;
+  }
+  res.end(buffer);
 }
 
 function ensureAuthenticated(req) {
@@ -144,6 +156,28 @@ export async function handleContentGet(req, res) {
     sendJson(res, 200, { ok: true, content });
   } catch (error) {
     sendJson(res, 500, { ok: false, message: "Could not load content." });
+  }
+}
+
+export async function handleResumeGet(req, res) {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    sendJson(res, 405, { ok: false, message: "Method not allowed." });
+    return;
+  }
+
+  try {
+    const resumeDataUrl = await readResumeDataUrl();
+    const prefix = "data:application/pdf;base64,";
+    if (!resumeDataUrl || !resumeDataUrl.startsWith(prefix)) {
+      sendJson(res, 404, { ok: false, message: "Resume not found." });
+      return;
+    }
+
+    const base64 = resumeDataUrl.slice(prefix.length).replace(/\s/g, "");
+    const buffer = Buffer.from(base64, "base64");
+    sendPdf(res, 200, buffer, req.method);
+  } catch (error) {
+    sendJson(res, 500, { ok: false, message: "Could not load resume." });
   }
 }
 

@@ -13,6 +13,7 @@ import AdminPage from "./components/AdminPage.jsx";
 import { getDefaultContent, normalizeStoredContent } from "./utils/content.js";
 
 const PDF_DATA_URL_PREFIX = "data:application/pdf;base64,";
+const PUBLIC_RESUME_PATH = "/api/resume";
 
 const ALL_SECTION_IDS = [
   "home",
@@ -63,6 +64,16 @@ function createPdfBlobUrl(dataUrl) {
   return URL.createObjectURL(blob);
 }
 
+function deriveResumeHref(raw, normalized) {
+  if (raw && typeof raw.resumeDataUrl === "string" && raw.resumeDataUrl.trim()) {
+    return raw.resumeDataUrl.trim();
+  }
+  if (raw && raw.hasResume === true) {
+    return PUBLIC_RESUME_PATH;
+  }
+  return normalized.profile.resumeUrl || "#";
+}
+
 function readBootstrappedContent() {
   if (typeof document !== "object") return null;
   const node = document.getElementById("portfolio-bootstrap");
@@ -94,10 +105,7 @@ export default function App() {
     const normalized = normalizeStoredContent(raw);
     return {
       content: normalized,
-      resumeHref:
-        typeof raw.resumeDataUrl === "string" && raw.resumeDataUrl.trim()
-          ? raw.resumeDataUrl.trim()
-          : normalized.profile.resumeUrl || "#",
+      resumeHref: deriveResumeHref(raw, normalized),
       ready: true,
     };
   }, [defaults]);
@@ -144,6 +152,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (initialState.ready) return;
+
     let active = true;
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 5000);
@@ -172,11 +182,7 @@ export default function App() {
         setCertifications(normalized.certifications);
         setSectionVisibility(normalized.sectionVisibility);
         setSectionSubtitles(normalized.sectionSubtitles);
-        if (typeof raw.resumeDataUrl === "string" && raw.resumeDataUrl.trim()) {
-          setResumeHref(raw.resumeDataUrl.trim());
-        } else {
-          setResumeHref(normalized.profile.resumeUrl || "#");
-        }
+        setResumeHref(deriveResumeHref(raw, normalized));
       } catch (error) {
         // Keep defaults when API is unavailable.
       } finally {
@@ -191,7 +197,7 @@ export default function App() {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, []);
+  }, [initialState.ready]);
 
   useEffect(() => {
     const nextHref = normalizeHref(resumeHref);
@@ -214,7 +220,7 @@ export default function App() {
     };
   }, [resumeHref]);
 
-  const applyNormalizedContent = useCallback((normalized, resumeDataUrl) => {
+  const applyNormalizedContent = useCallback((normalized, rawContent) => {
     setProfile(normalized.profile);
     setHeroRoles(normalized.heroRoles);
     setAboutContent(normalized.about);
@@ -225,11 +231,7 @@ export default function App() {
     setCertifications(normalized.certifications);
     setSectionVisibility(normalized.sectionVisibility);
     setSectionSubtitles(normalized.sectionSubtitles);
-    if (typeof resumeDataUrl === "string" && resumeDataUrl.trim()) {
-      setResumeHref(resumeDataUrl.trim());
-    } else {
-      setResumeHref(normalized.profile.resumeUrl || "#");
-    }
+    setResumeHref(deriveResumeHref(rawContent, normalized));
   }, []);
 
   const saveContentPatch = useCallback(
@@ -265,7 +267,7 @@ export default function App() {
       const raw = data && typeof data === "object" ? data.content : null;
       if (!raw || typeof raw !== "object") return;
       const normalized = normalizeStoredContent(raw);
-      applyNormalizedContent(normalized, raw.resumeDataUrl);
+      applyNormalizedContent(normalized, raw);
     },
     [applyNormalizedContent],
   );

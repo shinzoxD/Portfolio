@@ -7,6 +7,7 @@ import {
   handleAdminLogout,
   handleAdminSession,
   handleContentGet,
+  handleResumeGet,
   handleContentSave,
 } from "./src/server/adminApi.js";
 import { readContentStore } from "./src/server/contentStore.js";
@@ -77,6 +78,10 @@ async function routeApi(req, res, pathname) {
     } else {
       await handleContentSave(req, res);
     }
+    return true;
+  }
+  if (pathname === "/api/resume") {
+    await handleResumeGet(req, res);
     return true;
   }
   if (pathname.startsWith("/api/")) {
@@ -192,4 +197,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  void readContentStore().catch(() => {});
 });
