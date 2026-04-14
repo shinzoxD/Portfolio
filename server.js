@@ -59,6 +59,56 @@ function serializeForHtml(value) {
     .replace(/\u2029/g, "\\u2029");
 }
 
+function trimText(value, maxLength = 160) {
+  if (typeof value !== "string") return "";
+  const text = value.trim();
+  if (!text) return "";
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+}
+
+function getRequestIp(req) {
+  const cfIp = req.headers["cf-connecting-ip"];
+  if (typeof cfIp === "string" && cfIp.trim()) return cfIp.trim();
+
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.trim()) {
+    return forwarded.split(",")[0].trim();
+  }
+
+  return req.socket && typeof req.socket.remoteAddress === "string"
+    ? req.socket.remoteAddress
+    : "";
+}
+
+function shouldLogRequest(pathname) {
+  if (!pathname || pathname === "/healthz") return false;
+  if (pathname === "/" || pathname === "/index.html") return true;
+  if (pathname.startsWith("/api/")) return true;
+  if (pathname.startsWith("/assets/")) return false;
+  return path.extname(pathname) === "";
+}
+
+function attachRequestLogger(req, res, pathname) {
+  if (!shouldLogRequest(pathname)) return;
+
+  const startedAt = process.hrtime.bigint();
+  res.on("finish", () => {
+    const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
+    const entry = {
+      time: new Date().toISOString(),
+      method: req.method || "GET",
+      path: pathname,
+      status: res.statusCode,
+      durationMs: Number(durationMs.toFixed(1)),
+      ip: trimText(getRequestIp(req), 80),
+      host: trimText(req.headers.host, 120),
+      referer: trimText(req.headers.referer, 160),
+      userAgent: trimText(req.headers["user-agent"], 200),
+    };
+    console.log(`[request] ${JSON.stringify(entry)}`);
+  });
+}
+
 async function routeApi(req, res, pathname) {
   if (pathname === "/healthz") {
     sendText(res, 200, "ok");
@@ -189,6 +239,8 @@ const server = http.createServer(async (req, res) => {
     const host = req.headers.host || "localhost";
     const url = new URL(req.url || "/", `http://${host}`);
     const pathname = decodeURIComponent(url.pathname);
+
+    attachRequestLogger(req, res, pathname);
 
     const handledApi = await routeApi(req, res, pathname);
     if (handledApi) return;
