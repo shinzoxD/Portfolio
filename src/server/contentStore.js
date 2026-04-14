@@ -18,12 +18,10 @@ const STORE_DIR = path.join(process.cwd(), "server-data");
 const STORE_FILE = path.join(STORE_DIR, "content.json");
 const MAX_RESUME_DATA_URL_LEN = 8_000_000;
 const CONTENT_ROW_ID = 1;
-const CONTENT_CACHE_TTL_MS = 60_000;
 
 let poolRef = null;
 let schemaPromise = null;
 let cachedRawContent = null;
-let cachedRawContentAt = 0;
 
 function ensureStoreDir() {
   if (!fs.existsSync(STORE_DIR)) fs.mkdirSync(STORE_DIR, { recursive: true });
@@ -31,17 +29,11 @@ function ensureStoreDir() {
 
 function getCachedRawContent() {
   if (!cachedRawContent) return null;
-  if (Date.now() - cachedRawContentAt > CONTENT_CACHE_TTL_MS) {
-    cachedRawContent = null;
-    cachedRawContentAt = 0;
-    return null;
-  }
   return cachedRawContent;
 }
 
 function setCachedRawContent(value) {
   cachedRawContent = value && typeof value === "object" ? value : {};
-  cachedRawContentAt = Date.now();
 }
 
 function readStoreRawFromFile() {

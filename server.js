@@ -60,6 +60,10 @@ function serializeForHtml(value) {
 }
 
 async function routeApi(req, res, pathname) {
+  if (pathname === "/healthz") {
+    sendText(res, 200, "ok");
+    return true;
+  }
   if (pathname === "/api/admin/session") {
     handleAdminSession(req, res);
     return true;
